@@ -1,76 +1,40 @@
-version: '3.8'
-
 services:
-  # 1. Database Service (PostgreSQL)
   database:
-    container_name: directus_db
-    image: postgres:15-alpine
-    restart: always
-    env_file:
-      - .env
+    image: 'postgres:17-alpine'
+    restart: unless-stopped
     environment:
-      # Explicitly mapping these ensures Docker picks them up from Coolify's generated .env
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: directus
+      POSTGRES_PASSWORD: '${DB_PASSWORD}'
+      POSTGRES_DB: directus
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - directus_network
-
-  # 2. Cache Service (Redis)
-  # Optional: Drastically improves Directus API performance.
-  redis:
-    container_name: directus_redis
-    image: redis:6-alpine
-    restart: always
-    networks:
-      - directus_network
-
-  # 3. Directus Application
+      - 'db_data:/var/lib/postgresql/data'
   directus:
-    container_name: directus_app
-    image: directus/directus:latest
-    restart: always
-    ports:
-      - "8055:8055"
-    env_file:
-      - .env
+    image: 'directus/directus:11.12.0'
+    restart: unless-stopped
+    environment:
+      KEY: '${KEY}'
+      SECRET: '${SECRET}'
+      ADMIN_EMAIL: '${ADMIN_EMAIL}'
+      ADMIN_PASSWORD: '${ADMIN_PASSWORD}'
+      DB_CLIENT: pg
+      DB_HOST: database
+      DB_PORT: 5432
+      DB_DATABASE: directus
+      DB_USER: directus
+      DB_PASSWORD: '${DB_PASSWORD}'
+      WEBSOCKETS_ENABLED: 'true'
+      LOG_LEVEL: info
+      PUBLIC_URL: '${PUBLIC_URL}'
+      PORT: 8055
+      CORS_ENABLED: true
+      CORS_ORIGIN: 'http://localhost:3000,https://ppgadmin.themainhost.co.uk'
+    volumes:
+      - 'directus_uploads:/directus/uploads'
+      - 'directus_extensions:/directus/extensions'
+      - './directus_schema.yaml:/directus/schema.yaml'
     depends_on:
       - database
-      - redis
-    volumes:
-      # Persist user uploads
-      - ./uploads:/directus/uploads 
-      # Mount extensions if you have any
-      - ./extensions:/directus/extensions
-    networks:
-      - directus_network
-
-  # 4. Schema Automation (The "Script It" Container)
-  # This runs once on every deployment to apply your YAML schema.
-  directus-schema-init:
-    container_name: directus_schema_apply
-    image: directus/directus:latest
-    restart: "no" # Stops after finishing the script
-    env_file:
-      - .env
-    depends_on:
-      - directus
-    volumes:
-      # Mount the schema file from your Git Repo into the container
-      - ./directus_schema.yaml:/directus/schema.yaml
-    networks:
-      - directus_network
-    # 1. Wait for Directus to start (sleep 15)
-    # 2. Run the apply command. 
-    # Note: We use the CLI to talk to the DB using the Env Vars loaded.
-    command: >
-      sh -c "echo 'Waiting for Directus to initialize...' && sleep 15 && npx directus schema apply /directus/schema.yaml --yes"
-
 volumes:
-  postgres_data:
-
-networks:
-  directus_network:
-    driver: bridge
+  db_data: null
+  directus_uploads: null
+  directus_extensions: null
