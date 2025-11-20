@@ -1,0 +1,73 @@
+# Simplified YAML for Core PPG Collections
+
+version: 2
+collections:
+  # 1. Meeting Minutes Collection
+  minutes:
+    schema:
+      name: minutes
+    meta:
+      collection: minutes
+      icon: chrome_reader_mode
+      note: Uploaded PDF files for official meeting reports.
+      display_template: '{{date_held}} - {{title}}'
+      singleton: false
+      archive_field: status
+      permissions:
+        # Public Read Access (Crucial for Astro/Cloudflare Pages)
+        - role: public 
+          action: read
+          fields: ['id', 'title', 'date_held', 'file']
+    fields:
+      id: { field: id, type: integer }
+      title: { field: title, type: string, meta: { required: true, interface: input } }
+      date_held: { field: date_held, type: date, meta: { required: true, interface: datetime } }
+      # Link to the File storage (Cloudflare R2 or local uploads)
+      file: 
+        field: file
+        type: uuid
+        relation: { collection: directus_files }
+        meta: { interface: file_image, options: { folder: minutes } }
+
+  # 2. News/Blog Posts Collection
+  news:
+    schema:
+      name: news
+    meta:
+      collection: news
+      icon: article
+      note: General news and patient updates.
+      display_template: '{{title}}'
+      permissions:
+        - role: public
+          action: read
+          fields: ['id', 'slug', 'title', 'content', 'date_published']
+    fields:
+      id: { field: id, type: integer }
+      slug: { field: slug, type: string, meta: { required: true, interface: input } }
+      title: { field: title, type: string, meta: { required: true, interface: input } }
+      # Use WYSIWYG for easy editing by volunteers
+      content: { field: content, type: text, meta: { interface: wysiwyg } } 
+      date_published: { field: date_published, type: date, meta: { interface: datetime } }
+      
+  # 3. Micro-Polls Collection
+  polls:
+    schema:
+      name: polls
+    meta:
+      collection: polls
+      icon: how_to_vote
+      display_template: '{{question}}'
+      singleton: false
+      permissions:
+        - role: public
+          action: read
+          fields: ['id', 'question', 'is_active', 'option_a_votes', 'option_b_votes']
+    fields:
+      id: { field: id, type: integer }
+      question: { field: question, type: string, meta: { interface: input } }
+      is_active: { field: is_active, type: boolean, meta: { interface: toggle } }
+      option_a_text: { field: option_a_text, type: string, meta: { interface: input } }
+      option_b_text: { field: option_b_text, type: string, meta: { interface: input } }
+      option_a_votes: { field: option_a_votes, type: integer, meta: { interface: counter } }
+      option_b_votes: { field: option_b_votes, type: integer, meta: { interface: counter } }
