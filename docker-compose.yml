@@ -9,7 +9,7 @@ services:
     volumes:
       - 'db_data:/var/lib/postgresql/data'
   directus:
-    image: 'directus/directus:latest'
+    image: 'directus/directus:11.13.3'
     restart: unless-stopped
     environment:
       KEY: '${KEY}'
@@ -31,7 +31,6 @@ services:
     volumes:
       - 'directus_uploads:/directus/uploads'
       - 'directus_extensions:/directus/extensions'
-      - './directus_schema.yaml:/directus/schema.yaml'
     depends_on:
       - database
 volumes:
